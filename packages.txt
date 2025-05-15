@@ -1,0 +1,10 @@
+# OpenCV系统依赖
+libgl1
+libglib2.0-0
+libsm6
+libxrender1
+libxext6
+
+# PyTorch优化依赖
+libgomp1
+libopenblas-base
