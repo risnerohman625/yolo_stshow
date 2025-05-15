@@ -49,8 +49,7 @@ def save_result(defects, frame, manual=False):
 def load_models():
     """加载预训练模型"""
     # YOLO模型
-    yolo_model = YOLO(
-    'C:\\Users\\14984\\Desktop\\yolo_hong\\runs\\detect\\defect_v8s\\weights\\best.pt')
+    yolo_model = YOLO('./runs/detect/defect_v8s/weights/best.pt')
     # CNN模型
     cnn_model = resnet18(pretrained=False)
     cnn_model.fc = torch.nn.Linear(cnn_model.fc.in_features, 3)
