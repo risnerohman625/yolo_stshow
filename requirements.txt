@@ -1,8 +1,9 @@
-streamlit>=1.22.0
-opencv-python>=4.8.0
-pillow>=10.0.0
-numpy>=1.24.0
-pandas>=2.0.0
-torch>=2.0.1
-torchvision>=0.15.2
-ultralytics>=8.0.170
+streamlit==1.45.1
+opencv-python-headless==4.9.0.80  # 无GUI依赖版本[3,6](@ref)
+numpy==1.26.4  # 避免新版兼容问题[5,7](@ref)
+pandas==2.2.3
+pillow==11.2.1  # PIL现代维护版[3,8](@ref)
+torch==2.5.1+cu118  # 明确CUDA版本[5,8](@ref)
+torchvision==0.20.1
+ultralytics==8.3.122  # YOLO官方库[3,6](@ref)
+pyyaml==6.0.2  # 配置文件解析[5](@ref)
