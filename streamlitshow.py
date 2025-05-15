@@ -13,6 +13,23 @@ from torchvision.models import resnet18
 from ultralytics import YOLO
 from streamlit.components.v1 import html
 
+# streamlitshow.py 头部添加以下代码
+from ultralytics.nn.modules import Block
+from ultralytics.nn.tasks import DetectionModel
+
+# 定义 C3k2 模块（需与训练环境完全一致）
+class C3k2(Block):
+    def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):
+        super().__init__()
+        # 此处需根据官方源码补全结构（参考网页10中的C3k2定义）
+        self.cv1 = Conv(c1, c2, 1, 1)
+        self.cv2 = Conv(c1, c2, 1, 1)
+        
+    def forward(self, x):
+        return self.cv1(x) + self.cv2(x)
+
+# 关键注册操作（网页6）
+DetectionModel.register(C3k2)  # 将模块注册到模型解析器
 
 # 定义保存结果的函数
 def save_result(defects, frame, manual=False):
@@ -60,7 +77,7 @@ def load_models():
     if not yolo_path.exists():
         raise FileNotFoundError(f"模型文件未找到：{yolo_path}")
 
-    yolo_model = YOLO(str(yolo_path))  # 需要转换为字符串类型
+    yolo_model = YOLO(str(yolo_path),weights_only=False)  # 需要转换为字符串类型
     # yolo_model = YOLO('./runs/detect/defect_v8s/weights/best.pt')
     # CNN模型
     cnn_model = resnet18(pretrained=False)
