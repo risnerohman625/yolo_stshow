@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import os
 import torch
+from pathlib import Path
 from torchvision import transforms
 from torchvision.models import resnet18
 from ultralytics import YOLO
@@ -49,7 +50,18 @@ def save_result(defects, frame, manual=False):
 def load_models():
     """加载预训练模型"""
     # YOLO模型
-    yolo_model = YOLO('./runs/detect/defect_v8s/weights/best.pt')
+    # 获取当前脚本的绝对路径
+    current_dir = Path(__file__).parent.absolute()
+
+    # 构建模型路径（适配云端环境）
+    model_path = current_dir / "runs" / "detect" / "defect_v8s" / "weights" / "best.pt"
+
+    # 加载前验证路径
+    if not model_path.exists():
+        raise FileNotFoundError(f"模型文件未找到：{model_path}")
+
+    yolo_model = YOLO(str(model_path))  # 需要转换为字符串类型
+    # yolo_model = YOLO('./runs/detect/defect_v8s/weights/best.pt')
     # CNN模型
     cnn_model = resnet18(pretrained=False)
     cnn_model.fc = torch.nn.Linear(cnn_model.fc.in_features, 3)
