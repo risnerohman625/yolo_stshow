@@ -3,7 +3,7 @@
 --trusted-host=pypi.tuna.tsinghua.edu.cn
 
 # 核心依赖
-ultralytics==11.0.0
+ultralytics==8.2.2
 streamlit==1.45.1
 opencv-python-headless==4.9.0.80
 numpy==1.26.4
