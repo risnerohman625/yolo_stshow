@@ -1,0 +1,11 @@
+# data.yaml（绝对路径版本）
+train: C:/Users/14984/Desktop/exp/yolo_dataset/images/train
+val: C:/Users/14984/Desktop/exp/yolo_dataset/images/val
+nc: 2
+names: ['logo', 'mao']  # 暂时忽略dong/que
+# 数据增强（针对工业缺陷优化）
+augmentations:
+  hsv_h: 0.02    # 色调扰动（适应光照变化）
+  hsv_s: 0.6     # 饱和度扰动（适应表面反光）
+  translate: 0.1  # 平移增强（模拟定位偏差）
+  mosaic: 0.5     # 小目标增强（提升孔洞检测能力）
