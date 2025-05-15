@@ -54,18 +54,19 @@ def load_models():
     current_dir = Path(__file__).parent.absolute()
 
     # 构建模型路径（适配云端环境）
-    model_path = current_dir / "runs" / "detect" / "defect_v8s" / "weights" / "best.pt"
+    yolo_path = current_dir / "runs" / "detect" / "defect_v8s" / "weights" / "best.pt"
 
     # 加载前验证路径
     if not model_path.exists():
-        raise FileNotFoundError(f"模型文件未找到：{model_path}")
+        raise FileNotFoundError(f"模型文件未找到：{yolo_path}")
 
-    yolo_model = YOLO(str(model_path))  # 需要转换为字符串类型
+    yolo_model = YOLO(str(yolo_path))  # 需要转换为字符串类型
     # yolo_model = YOLO('./runs/detect/defect_v8s/weights/best.pt')
     # CNN模型
     cnn_model = resnet18(pretrained=False)
     cnn_model.fc = torch.nn.Linear(cnn_model.fc.in_features, 3)
-    cnn_model.load_state_dict(torch.load('defect_cnn.pth', map_location='cpu'))
+    cnn_path = current_dir / "defect_cnn.pth"
+    cnn_model.load_state_dict(torch.load(cnn_path, map_location='cpu'))
     cnn_model.eval()
 
     return yolo_model, cnn_model
