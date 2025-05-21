@@ -8,11 +8,12 @@ from streamlit_webrtc import (
     webrtc_streamer,
     VideoProcessorBase,
     WebRtcMode,
+    ClientSettings,
 )
 from torchvision import transforms
 from ultralytics import YOLO
 
-# ========= 页面配置 =========
+# ========= 页面配置（必须最先调用） =========
 st.set_page_config(
     page_title="智能质检系统",
     page_icon="🔍",
@@ -23,9 +24,7 @@ st.title("🔍 智能质检（WebRTC 版）")
 # ========= 模型加载 =========
 @st.cache_resource
 def load_models():
-    # 1) YOLO 检测
     yol = YOLO("runs/detect/defect_v8s/weights/best.pt")
-    # 2) CNN 分类示例（ResNet18）
     cnn = torch.hub.load("pytorch/vision:v0.14.0", "resnet18", pretrained=False)
     cnn.fc = torch.nn.Linear(cnn.fc.in_features, 3)
     cnn.load_state_dict(torch.load("defect_cnn.pth", map_location="cpu"))
@@ -79,21 +78,25 @@ class VideoTransformer(VideoProcessorBase):
 # ========= 侧栏参数 =========
 conf = st.sidebar.slider("置信度阈值", 0.0, 1.0, 0.5, 0.01)
 
-# ========= 启动 WebRTC =========
-webrtc_streamer(
-    key="yolo-webrtc",
-    mode=WebRtcMode.SENDRECV,
+# ========= WebRTC 客户端设置 =========
+CLIENT_SETTINGS = ClientSettings(
     rtc_configuration={
         "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
     },
     media_stream_constraints={"video": True, "audio": False},
+)
+
+# ========= 启动 WebRTC =========
+webrtc_ctx = webrtc_streamer(
+    key="yolo-webrtc",
+    mode=WebRtcMode.SENDRECV,
+    client_settings=CLIENT_SETTINGS,
     video_processor_factory=VideoTransformer,
 )
 
 # 动态更新阈值
-if st.session_state.get("webrtc_context") and \
-   st.session_state.webrtc_context.video_processor:
-    st.session_state.webrtc_context.video_processor.conf_th = conf
+if webrtc_ctx.video_processor:
+    webrtc_ctx.video_processor.conf_th = conf
 
 st.sidebar.markdown(
     """
