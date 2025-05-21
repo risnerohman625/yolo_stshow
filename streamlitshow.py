@@ -49,10 +49,12 @@ def cnn_classify(crop: np.ndarray) -> str:
 # ========= 视频处理器 =========
 class VideoTransformer(VideoProcessorBase):
     def __init__(self):
+        # 初始化置信度阈值
         self.conf_th = 0.5
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
+        # YOLO 推理
         results = yolo_model.predict(img, conf=self.conf_th, verbose=False)[0]
         for box, cls, conf in zip(
             results.boxes.xyxy, results.boxes.cls, results.boxes.conf
@@ -63,6 +65,7 @@ class VideoTransformer(VideoProcessorBase):
                 crop = img[y1:y2, x1:x2]
                 sub = cnn_classify(crop)
                 label = f"{label}/{sub}"
+            # 画框和文字
             cv2.rectangle(img, (x1, y1), (x2, y2), (0,255,0), 2)
             cv2.putText(
                 img,
