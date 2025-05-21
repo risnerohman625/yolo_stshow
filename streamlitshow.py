@@ -1,3 +1,5 @@
+# streamlitshow.py
+
 import os
 import time
 from datetime import datetime
@@ -5,7 +7,7 @@ from datetime import datetime
 import cv2
 import numpy as np
 import pandas as pd
-import streamlit as st
+import streamlit as st  # 引入 Streamlit
 from PIL import Image
 import torch
 from torchvision import transforms
@@ -13,6 +15,8 @@ from torchvision.models import resnet18
 from ultralytics import YOLO
 from streamlit.components.v1 import html
 
+# ================== Streamlit 页面配置（必须最先调用） ==================
+st.set_page_config(page_title="智能质检系统", page_icon="🔍", layout="wide")
 
 # ================== 保存结果 ==================
 def save_result(defects, frame, manual=False):
@@ -40,7 +44,6 @@ def save_result(defects, frame, manual=False):
     st.session_state.detection_history.append(record)
     st.toast(f"已保存：{filename}")
 
-
 # ================== 模型加载 ==================
 @st.cache_resource
 def load_models():
@@ -53,13 +56,10 @@ def load_models():
     cnn_model.eval()
     return yolo_model, cnn_model
 
-
 yolo_model, cnn_model = load_models()
-
 
 # ================== 核心检测 ==================
 CLASS_NAMES = ["dong", "que", "normal"]
-
 
 def cnn_classify(crop_img):
     transform = transforms.Compose([
@@ -72,7 +72,6 @@ def cnn_classify(crop_img):
     with torch.no_grad():
         out = cnn_model(img_t)
     return CLASS_NAMES[int(out.argmax())]
-
 
 def yolo_detect(frame, conf_threshold):
     res = yolo_model.predict(frame, conf=conf_threshold, verbose=False)[0]
@@ -102,7 +101,6 @@ def yolo_detect(frame, conf_threshold):
                     })
     return defects
 
-
 # ================== 可视化 ==================
 STYLE_CONFIG = {
     "logo":    {"thickness": 4, "font_scale": 2.4, "font_thickness": 5},
@@ -114,7 +112,6 @@ COLORS = {
     "dong": (0, 0, 255),
     "que":  (0, 255, 0),
 }
-
 
 def draw_results(frame, defects):
     for d in defects:
@@ -142,7 +139,6 @@ def draw_results(frame, defects):
                     style["font_thickness"])
     return frame
 
-
 # 空格键监听
 def add_space_key_listener():
     js = """
@@ -158,11 +154,9 @@ def add_space_key_listener():
     """
     html(js, height=0)
 
-
-# ================== Streamlit UI ==================
-st.set_page_config("智能质检系统", "🔍", layout="wide")
 add_space_key_listener()
 
+# ================== Streamlit UI ==================
 # 初始化 session_state
 st.session_state.setdefault("detection_history", [])
 st.session_state.setdefault("video_playing", False)
@@ -183,7 +177,61 @@ with col2:
     st.subheader("检测后")
     det_disp = st.empty()
 
-# ———— 主流程略，与原有逻辑相同，只是调用 yolo_detect / draw_results / save_result ————
+# ———— 主流程 ————
+if mode == "实时摄像头":
+    cap = cv2.VideoCapture(0)
+    st.session_state.video_playing = True
+    while st.session_state.video_playing:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        defects = yolo_detect(frame, conf_th)
+        vis = draw_results(frame.copy(), defects)
+        orig_disp.image(frame, channels="RGB")
+        det_disp.image(vis, channels="RGB")
+        if auto_save:
+            save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+        if manual_save and st.session_state.space_pressed == "space_pressed":
+            save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
+            st.session_state.space_pressed = None
+        time.sleep(0.03)
+    cap.release()
+
+elif mode == "上传图片":
+    uploaded = st.file_uploader("上传图片", type=["jpg", "png", "jpeg"])
+    if uploaded:
+        img = np.array(Image.open(uploaded).convert("RGB"))
+        orig_disp.image(img, channels="RGB")
+        defects = yolo_detect(img, conf_th)
+        vis = draw_results(img.copy(), defects)
+        det_disp.image(vis, channels="RGB")
+        if st.button("保存当前"):
+            save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
+
+else:  # 上传视频
+    uploaded = st.file_uploader("上传视频", type=["mp4", "avi", "mov"])
+    if uploaded:
+        tfile = tempfile.NamedTemporaryFile(delete=False)
+        tfile.write(uploaded.read())
+        cap = cv2.VideoCapture(tfile.name)
+        st.session_state.video_playing = True
+        while st.session_state.video_playing:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            defects = yolo_detect(frame, conf_th)
+            vis = draw_results(frame.copy(), defects)
+            orig_disp.image(frame, channels="RGB")
+            det_disp.image(vis, channels="RGB")
+            if auto_save:
+                save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+            if manual_save and st.session_state.space_pressed == "space_pressed":
+                save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
+                st.session_state.space_pressed = None
+            time.sleep(0.03)
+        cap.release()
 
 # 最后展示检测历史
 with st.expander("检测历史"):
