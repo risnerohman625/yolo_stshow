@@ -2,6 +2,7 @@
 
 import os
 import time
+import tempfile
 from datetime import datetime
 
 import cv2
@@ -180,23 +181,26 @@ with col2:
 # ———— 主流程 ————
 if mode == "实时摄像头":
     cap = cv2.VideoCapture(0)
-    st.session_state.video_playing = True
-    while st.session_state.video_playing:
-        ret, frame = cap.read()
-        if not ret:
-            break
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        defects = yolo_detect(frame, conf_th)
-        vis = draw_results(frame.copy(), defects)
-        orig_disp.image(frame, channels="RGB")
-        det_disp.image(vis, channels="RGB")
-        if auto_save:
-            save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
-        if manual_save and st.session_state.space_pressed == "space_pressed":
-            save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
-            st.session_state.space_pressed = None
-        time.sleep(0.03)
-    cap.release()
+    if not cap.isOpened():
+        st.error("无法打开摄像头，请检查设备或索引是否正确。")
+    else:
+        st.session_state.video_playing = True
+        while st.session_state.video_playing:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            defects = yolo_detect(frame, conf_th)
+            vis = draw_results(frame.copy(), defects)
+            orig_disp.image(frame, channels="RGB")
+            det_disp.image(vis, channels="RGB")
+            if auto_save:
+                save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+            if manual_save and st.session_state.space_pressed == "space_pressed":
+                save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
+                st.session_state.space_pressed = None
+            time.sleep(0.03)
+        cap.release()
 
 elif mode == "上传图片":
     uploaded = st.file_uploader("上传图片", type=["jpg", "png", "jpeg"])
@@ -215,23 +219,26 @@ else:  # 上传视频
         tfile = tempfile.NamedTemporaryFile(delete=False)
         tfile.write(uploaded.read())
         cap = cv2.VideoCapture(tfile.name)
-        st.session_state.video_playing = True
-        while st.session_state.video_playing:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            defects = yolo_detect(frame, conf_th)
-            vis = draw_results(frame.copy(), defects)
-            orig_disp.image(frame, channels="RGB")
-            det_disp.image(vis, channels="RGB")
-            if auto_save:
-                save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
-            if manual_save and st.session_state.space_pressed == "space_pressed":
-                save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
-                st.session_state.space_pressed = None
-            time.sleep(0.03)
-        cap.release()
+        if not cap.isOpened():
+            st.error("无法打开上传的视频文件，请确认格式是否受支持。")
+        else:
+            st.session_state.video_playing = True
+            while st.session_state.video_playing:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                defects = yolo_detect(frame, conf_th)
+                vis = draw_results(frame.copy(), defects)
+                orig_disp.image(frame, channels="RGB")
+                det_disp.image(vis, channels="RGB")
+                if auto_save:
+                    save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+                if manual_save and st.session_state.space_pressed == "space_pressed":
+                    save_result(defects, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR), manual=True)
+                    st.session_state.space_pressed = None
+                time.sleep(0.03)
+            cap.release()
 
 # 最后展示检测历史
 with st.expander("检测历史"):
