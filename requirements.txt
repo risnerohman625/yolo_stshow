@@ -1,16 +1,16 @@
 # 镜像源配置（必须置于文件顶部）
---index-url=https://pypi.tuna.tsinghua.edu.cn/simple
---trusted-host=pypi.tuna.tsinghua.edu.cn
+--index-url https://pypi.tuna.tsinghua.edu.cn/simple
+--extra-index-url https://download.pytorch.org/whl/cpu
+--trusted-host pypi.tuna.tsinghua.edu.cn
 
 # 核心依赖
-ultralytics=8.3.122
+ultralytics==8.3.122
 streamlit==1.45.1
 opencv-python-headless==4.9.0.80
 numpy==1.26.4
 pandas==2.2.3
 pillow==11.2.1
 
-# PyTorch CPU版本（适配Python 3.10）
+# PyTorch CPU 版本
 torch==2.3.1+cpu
 torchvision==0.18.1+cpu
---extra-index-url https://download.pytorch.org/whl/cpu
