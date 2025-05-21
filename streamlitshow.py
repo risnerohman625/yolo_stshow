@@ -4,25 +4,29 @@ import torch
 import numpy as np
 from PIL import Image
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+from streamlit_webrtc import (
+    webrtc_streamer,
+    VideoProcessorBase,
+    WebRtcMode,
+    ClientSettings,
+)
 from torchvision import transforms
 from ultralytics import YOLO
 
-# ———————— 页面配置 ————————
+# ————— 页面配置 —————
 st.set_page_config(
-    page_title="智能质检系统", 
-    page_icon="🔍", 
-    layout="wide"
+    page_title="智能质检系统",
+    page_icon="🔍",
+    layout="wide",
 )
-
 st.title("🔍 智能质检（WebRTC 版）")
 
-# ———————— 模型加载 ————————
+# ————— 模型加载 —————
 @st.cache_resource
 def load_models():
-    # YOLO 检测模型
+    # YOLO 检测模型（请换成你自己的权重路径）
     yolo = YOLO("runs/detect/defect_v8s/weights/best.pt")
-    # CNN 分类模型（示例用 ResNet18）
+    # CNN 分类模型示例：ResNet18
     cnn = torch.hub.load("pytorch/vision:v0.14.0", "resnet18", pretrained=False)
     cnn.fc = torch.nn.Linear(cnn.fc.in_features, 3)
     cnn.load_state_dict(torch.load("defect_cnn.pth", map_location="cpu"))
@@ -43,54 +47,52 @@ def cnn_classify(crop: np.ndarray) -> str:
         out = cnn_model(tensor)
     return CLASS_NAMES[int(out.argmax())]
 
-# ———————— 视频帧处理器 ————————
-class VideoTransformer(VideoTransformerBase):
+# ————— 视频处理器 —————
+class VideoTransformer(VideoProcessorBase):
     def __init__(self):
         self.conf_th = 0.5
 
-    def transform(self, frame: av.VideoFrame) -> av.VideoFrame:
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
-        # YOLO 预测
-        result = yolo_model.predict(img, conf=self.conf_th, verbose=False)[0]
-        for box, cls, conf in zip(result.boxes.xyxy, result.boxes.cls, result.boxes.conf):
+        results = yolo_model.predict(img, conf=self.conf_th, verbose=False)[0]
+        for box, cls, conf in zip(results.boxes.xyxy, results.boxes.cls, results.boxes.conf):
             x1, y1, x2, y2 = map(int, box.cpu().numpy())
-            label = result.names[int(cls.cpu().numpy())]
-            # 如果是可疑缺陷类别，再做 CNN 进一步分类
+            label = results.names[int(cls.cpu().numpy())]
             if label == "defect":
                 crop = img[y1:y2, x1:x2]
                 sublabel = cnn_classify(crop)
                 label = f"{label}/{sublabel}"
-            # 绘制框和文字
-            cv2.rectangle(img, (x1,y1), (x2,y2), (0,255,0), 2)
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0,255,0), 2)
             cv2.putText(
-                img, f"{label} {conf:.2f}", 
-                (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 
+                img, f"{label} {conf:.2f}",
+                (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX,
                 0.6, (255,255,255), 2
             )
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-# ———————— 侧栏设置 ————————
+# ————— 侧栏 —————
 conf = st.sidebar.slider("置信度阈值", 0.0, 1.0, 0.5, 0.01)
 
-# ———————— 启动 WebRTC 流 ————————
+# ————— 启动 WebRTC —————
 webrtc_ctx = webrtc_streamer(
     key="yolo-webrtc",
-    mode="SENDRECV",
-    rtc_configuration={
-        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-    },
-    video_transformer_factory=VideoTransformer,
+    mode=WebRtcMode.SENDRECV,
+    client_settings=ClientSettings(
+        media_stream_constraints={"video": True, "audio": False},
+        rtc_configuration={"iceServers":[{"urls":["stun:stun.l.google.com:19302"]}]}
+    ),
+    video_processor_factory=VideoTransformer,
 )
 
-# 动态修改置信度
-if webrtc_ctx.video_transformer:
-    webrtc_ctx.video_transformer.conf_th = conf
+# 实时更新置信度
+if webrtc_ctx.video_processor:
+    webrtc_ctx.video_processor.conf_th = conf
 
 st.sidebar.markdown(
     """
     **使用说明**  
     1. 运行后浏览器会请求“允许访问摄像头”。  
-    2. 点击“允许”即可看到画面并开始实时检测。  
-    3. 可在侧栏调整 Detection Confidence。  
+    2. 点击“允许”即可开始实时检测。  
+    3. 侧栏可调整 Detection Confidence。  
     """
 )
