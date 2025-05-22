@@ -8,7 +8,6 @@ from streamlit_webrtc import (
     webrtc_streamer,
     VideoProcessorBase,
     WebRtcMode,
-    ClientSettings,
 )
 from torchvision import transforms
 from ultralytics import YOLO
@@ -49,12 +48,10 @@ def cnn_classify(crop: np.ndarray) -> str:
 # ========= 视频处理器 =========
 class VideoTransformer(VideoProcessorBase):
     def __init__(self):
-        # 初始化置信度阈值
         self.conf_th = 0.5
 
     def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
         img = frame.to_ndarray(format="bgr24")
-        # YOLO 推理
         results = yolo_model.predict(img, conf=self.conf_th, verbose=False)[0]
         for box, cls, conf in zip(
             results.boxes.xyxy, results.boxes.cls, results.boxes.conf
@@ -65,7 +62,6 @@ class VideoTransformer(VideoProcessorBase):
                 crop = img[y1:y2, x1:x2]
                 sub = cnn_classify(crop)
                 label = f"{label}/{sub}"
-            # 画框和文字
             cv2.rectangle(img, (x1, y1), (x2, y2), (0,255,0), 2)
             cv2.putText(
                 img,
@@ -81,23 +77,18 @@ class VideoTransformer(VideoProcessorBase):
 # ========= 侧栏参数 =========
 conf = st.sidebar.slider("置信度阈值", 0.0, 1.0, 0.5, 0.01)
 
-# ========= WebRTC 客户端设置 =========
-CLIENT_SETTINGS = ClientSettings(
+# ========= WebRTC =========
+webrtc_ctx = webrtc_streamer(
+    key="yolo-webrtc",
+    mode=WebRtcMode.SENDRECV,
     rtc_configuration={
         "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
     },
     media_stream_constraints={"video": True, "audio": False},
-)
-
-# ========= 启动 WebRTC =========
-webrtc_ctx = webrtc_streamer(
-    key="yolo-webrtc",
-    mode=WebRtcMode.SENDRECV,
-    client_settings=CLIENT_SETTINGS,
     video_processor_factory=VideoTransformer,
 )
 
-# 动态更新阈值
+# 实时更新置信度
 if webrtc_ctx.video_processor:
     webrtc_ctx.video_processor.conf_th = conf
 
