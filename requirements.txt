@@ -13,9 +13,8 @@ opencv-python-headless==4.9.0.80
 torchviz==0.0.2
 graphviz==0.20.1
 # 可选屏幕捕捉
-mss==8.0.1
-# Excel 导出
-XlsxWriter==4.0.4
+# mss==8.0.1
+
 # 数据处理
 numpy==1.26.4
 pandas==2.2.3
