@@ -2,14 +2,19 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 --trusted-host pypi.tuna.tsinghua.edu.cn
 
-# 核心依赖
-ultralytics==8.3.122
+# Web 框架
 streamlit==1.45.1
 streamlit-webrtc==0.62.4
+
+# 计算机视觉 & 深度学习
+ultralytics==8.3.122
 opencv-python-headless==4.9.0.80
+av
+
+# 数据处理
 numpy==1.26.4
 pandas==2.2.3
-pillow==11.2.1
+Pillow==11.2.1
 
 # PyTorch CPU 版本
 torch==2.3.1+cpu
