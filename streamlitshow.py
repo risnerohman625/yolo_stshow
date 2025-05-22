@@ -27,9 +27,9 @@ COLORS = {
 
 # ================== 动态路径 ==================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = os.path.join(BASE_DIR, "models")
+MODEL_DIR = os.path.join(BASE_DIR, "runs/detect/defect_v8s")
 YOLO_PATH = os.path.join(MODEL_DIR, "best.pt")
-CNN_PATH  = os.path.join(MODEL_DIR, "defect_cnn.pth")
+CNN_PATH  = os.path.join(BASE_DIR, "defect_cnn.pth")
 
 # ================== 加载模型 ==================
 @st.cache_resource
