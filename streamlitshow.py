@@ -13,14 +13,6 @@ from streamlit_webrtc import (
     WebRtcMode,
 )
 
-# ====== 1. 注入 adapter.js polyfill （**一定要在任何 WebRTC 调用之前**） ======
-#    这样浏览器才会知道 RTCPeerConnection、getUserMedia 等 API
-components.html(
-    """
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    """,
-    height=0,
-)
 
 # ====== 2. 页面配置（set_page_config 必须最先调用 streamlit 的 API） ======
 st.set_page_config(
@@ -30,6 +22,16 @@ st.set_page_config(
 )
 
 st.title("🔍 智能质检（WebRTC 版）")
+
+# ====== 1. 注入 adapter.js polyfill （**一定要在任何 WebRTC 调用之前**） ======
+#    这样浏览器才会知道 RTCPeerConnection、getUserMedia 等 API
+components.html(
+    """
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    """,
+    height=0,
+)
+
 
 # ====== 3. 模型加载（缓存资源） ======
 @st.cache_resource
