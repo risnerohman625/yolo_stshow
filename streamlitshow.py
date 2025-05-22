@@ -161,9 +161,9 @@ elif mode=="上传图片":
         img = np.array(Image.open(up).convert("RGB"))
         dets = yolo_detect(cv2.cvtColor(img,cv2.COLOR_RGB2BGR),conf)
         out = draw_results(cv2.cvtColor(img,cv2.COLOR_RGB2BGR),dets)
-        orig.image(img,use_column_width=True,caption="原图")
+        orig.image(img,use_container_width=True,caption="原图")
         det.image(cv2.cvtColor(out,cv2.COLOR_BGR2RGB),
-                  use_column_width=True,caption="检测结果")
+                  use_container_width=True,caption="检测结果")
         if auto:    save_result(dets,out)
         if manual and st.button("保存当前图片"):
             save_result(dets,out,manual=True)
@@ -183,9 +183,9 @@ elif mode=="上传视频":
             dets=yolo_detect(frm,conf)
             out = draw_results(frm.copy(),dets)
             orig.image(cv2.cvtColor(frm,cv2.COLOR_BGR2RGB),
-                       use_column_width=True)
+                       use_container_width=True)
             det.image(cv2.cvtColor(out,cv2.COLOR_BGR2RGB),
-                      use_column_width=True)
+                      use_container_width=True)
             if auto: save_result(dets,out)
             if manual and st.button("保存帧"):
                 save_result(dets,out,manual=True)
