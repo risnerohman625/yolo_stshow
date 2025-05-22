@@ -1,5 +1,5 @@
 import streamlit as st
-import streamlit.components.v1 as components  # 用来注入 adapter.js
+import streamlit.components.v1 as components
 import av
 import cv2
 import torch
@@ -13,18 +13,14 @@ from streamlit_webrtc import (
     WebRtcMode,
 )
 
-
-# ====== 2. 页面配置（set_page_config 必须最先调用 streamlit 的 API） ======
+# ===== 1. 页面配置 （必须最先调用 Streamlit API） =====
 st.set_page_config(
     page_title="智能质检系统",
     page_icon="🔍",
     layout="wide",
 )
 
-st.title("🔍 智能质检（WebRTC 版）")
-
-# ====== 1. 注入 adapter.js polyfill （**一定要在任何 WebRTC 调用之前**） ======
-#    这样浏览器才会知道 RTCPeerConnection、getUserMedia 等 API
+# ===== 2. 注入 adapter.js polyfill （在任何 WebRTC 调用前加载） =====
 components.html(
     """
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
@@ -32,13 +28,20 @@ components.html(
     height=0,
 )
 
+# ===== 3. 标题 & 侧栏说明 =====
+st.title("🔍 智能质检（WebRTC 版）")
+st.sidebar.markdown(
+    """
+    **使用说明**  
+    1. 浏览器会弹窗请求摄像头权限，点“允许”启动检测  
+    2. 侧栏可调整置信度阈值  
+    """
+)
 
-# ====== 3. 模型加载（缓存资源） ======
+# ===== 4. 模型加载（缓存资源） =====
 @st.cache_resource
 def load_models():
-    # YOLO 检测模型
     yol = YOLO("runs/detect/defect_v8s/weights/best.pt")
-    # 一个简单的 CNN 二次分类器
     cnn = torch.hub.load("pytorch/vision:v0.14.0", "resnet18", pretrained=False)
     cnn.fc = torch.nn.Linear(cnn.fc.in_features, 3)
     cnn.load_state_dict(torch.load("defect_cnn.pth", map_location="cpu"))
@@ -60,7 +63,7 @@ def cnn_classify(crop: np.ndarray) -> str:
         out = cnn_model(tensor)
     return CLASS_NAMES[int(out.argmax())]
 
-# ====== 4. 视频处理器 ======
+# ===== 5. 视频处理器 =====
 class VideoTransformer(VideoProcessorBase):
     def __init__(self):
         self.conf_th = 0.5
@@ -89,10 +92,10 @@ class VideoTransformer(VideoProcessorBase):
             )
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-# ====== 5. 侧栏参数 ======
+# ===== 6. 侧栏：置信度滑条 =====
 conf = st.sidebar.slider("置信度阈值", 0.0, 1.0, 0.5, 0.01)
 
-# ====== 6. 启动 WebRTC 流 ======
+# ===== 7. 启动 WebRTC 流 =====
 webrtc_ctx = webrtc_streamer(
     key="yolo-webrtc",
     mode=WebRtcMode.SENDRECV,
@@ -103,15 +106,6 @@ webrtc_ctx = webrtc_streamer(
     video_processor_factory=VideoTransformer,
 )
 
-# 实时更新置信度
+# 实时更新阈值
 if webrtc_ctx.video_processor:
     webrtc_ctx.video_processor.conf_th = conf
-
-# 小提示
-st.sidebar.markdown(
-    """
-    **使用说明**  
-    1. 浏览器会弹窗请求摄像头权限，点“允许”启动检测  
-    2. 侧栏可调整置信度阈值  
-    """
-)
